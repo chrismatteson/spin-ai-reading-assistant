@@ -1,0 +1,49 @@
+spin_manifest_version = "1"
+authors = ["Chris Matteson <chris.matteson@gmail.com>"]
+description = "Spin AI Reading Assistant"
+name = "Read With AI"
+trigger = { type = "http", base = "/" }
+version = "0.1.0"
+
+[[component]]
+id = "list"
+source = "list/target/list.wasm"
+exclude_files = ["**/node_modules"]
+key_value_stores = ["default"]
+sqlite_databases = ["default"]
+[component.trigger]
+route = "/api/list"
+[component.build]
+command = "npm run build"
+workdir = "list"
+
+[[component]]
+id = "write"
+source = "write/target/write.wasm"
+exclude_files = ["**/node_modules"]
+key_value_stores = ["default"]
+sqlite_databases = ["default"]
+[component.trigger]
+route = "/api/write"
+[component.build]
+command = "npm run build"
+workdir = "write"
+
+[[component]]
+id = "read"
+source = "read/target/read.wasm"
+exclude_files = ["**/node_modules"]
+key_value_stores = ["default"]
+sqlite_databases = ["default"]
+[component.trigger]
+route = "/api/read"
+[component.build]
+command = "npm run build"
+workdir = "read"
+
+[[component]]
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.2/spin_static_fs.wasm", digest = "sha256:65456bf4e84cf81b62075e761b2b0afaffaef2d0aeda521b245150f76b96421b" }
+id = "ui"
+files = [ { source = "ui/dist", destination = "/" } ]
+[component.trigger]
+route = "/..."

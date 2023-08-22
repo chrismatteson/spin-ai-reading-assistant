@@ -1,0 +1,39 @@
+html,
+body {
+  width: 100%;
+  min-height: 100vh;
+  background: #0e092d;
+  color: white;
+  margin: 0; /* Remove default margin */
+  overflow: hidden; /* Prevent scrollbars on the body */
+}
+
+.App {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100vh;
+}
+
+.left-box {
+  width: 100%;
+  background-color: #0e092d;
+  color: white;
+  overflow: auto; /* Allow scrolling if content overflows */
+}
+
+.right-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take remaining width */
+}
+
+.top-right-box,
+.bottom-right-box {
+  width: 100%;
+  background-color: #0e092d;
+  color: white;
+  overflow: auto; /* Allow scrolling if content overflows */
+}
+
+/* Your specified styles for labels, inputs, buttons, etc. go here */
