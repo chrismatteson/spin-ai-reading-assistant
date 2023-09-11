@@ -1,11 +1,17 @@
+.ResizableBox {
+  border: 2px solid #000;
+} 
+
+.selected {
+  font-weight: bold;
+}
+
 html,
 body {
   width: 100%;
   min-height: 100vh;
-  background: #0e092d;
+  background: #3f3296;
   color: white;
-  margin: 0; /* Remove default margin */
-  overflow: hidden; /* Prevent scrollbars on the body */
 }
 
 .App {
@@ -17,23 +23,28 @@ body {
 
 .left-box {
   width: 100%;
-  background-color: #0e092d;
+  background-color: #3f3296;
   color: white;
   overflow: auto; /* Allow scrolling if content overflows */
+  border: 2px solid #000;
 }
 
 .right-container {
   display: flex;
   flex-direction: column;
   flex: 1; /* Take remaining width */
+  border: 2px solid #000;
 }
 
 .top-right-box,
 .bottom-right-box {
-  width: 100%;
-  background-color: #0e092d;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take remaining width */
+  background-color: #3f3296;
   color: white;
   overflow: auto; /* Allow scrolling if content overflows */
+  border: 2px solid #000;
 }
 
 /* Your specified styles for labels, inputs, buttons, etc. go here */

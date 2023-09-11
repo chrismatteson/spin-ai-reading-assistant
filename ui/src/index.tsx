@@ -5,10 +5,10 @@ import './App.css'; // Import your CSS file with the specified styles
 
 // Interfaces
 interface TextDisplayProps {
+  folderTree: Folder[];
   selectedFile: string | null;
   selectedFolder: string | null;
-  setSelectedFile: (file: string | null) => void;
-  setSelectedFolder: (file: string | null) => void;
+  setSelectedFile: (folder: string | null, file: string | null) => void;
 }
 
 interface Folder {
@@ -30,32 +30,85 @@ interface AppState {
 }
   
 // Component: Folder Tree
-const FolderTree: React.FC<TextDisplayProps> = ({ setSelectedFolder, setSelectedFile }) => {
-  const [folderTree, setFolderTree] = useState<Folder[]>([]);
-  const [selectedFolder, setSelectedFolderState] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+const FolderTree: React.FC<TextDisplayProps> = ({ folderTree, selectedFile, selectedFolder, setSelectedFile }) => {
+  const [selectedFileForUpload, setSelectedFileForUpload] = useState<File | null>(null);
+  const [selectedFolderForUpload, setSelectedFolderForUpload] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch folder tree data from /api/list or your API endpoint
-    fetch('/api/list')
-      .then((response) => response.json())
-      .then((data: { folder: string; files: string[] }[]) => {
-        setFolderTree(data); // No need to restructure the data; it's in the right format
-      })
-      .catch((error) => console.error('Error fetching folder tree:', error));
-  }, []);
+  // Function to handle file selection
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files && event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFileForUpload(file);
+    } else {
+      // Handle invalid file type (not PDF)
+      setUploadMessage('Invalid file type. Please select a PDF file.');
+      console.error('Invalid file type. Please select a PDF file.');
+    }
+  };
 
-  const handleFileClick = (folder: string, file: string) => {
-    setSelectedFolderState(folder);
-    setSelectedFileName(file);
+  // Function to handle folder selection for upload
+  const handleFolderSelection = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedFolderForUpload(event.target.value);
+  };
 
-    // When a file is clicked, update the selected file in the TextDisplay
-    setSelectedFile(file);
+  const handleFileUpload = async () => {
+    if (selectedFileForUpload && selectedFolderForUpload) {
+      const formData = new FormData();
+      formData.append('file', selectedFileForUpload);
+      
+      // Set headers for filename and folder
+      const headers = new Headers();
+      headers.append('filename', selectedFileForUpload.name);
+      headers.append('folder', selectedFolderForUpload);
+
+      try {
+        // Make the POST request to api/write
+        const response = await fetch('/api/write', {
+          method: 'POST',
+          body: formData,
+          headers,
+        });
+
+        if (response.ok) {
+          // Handle successful file upload
+          setUploadMessage('File uploaded successfully.');
+          console.log('File uploaded successfully.');
+          setSelectedFileForUpload(null); // Clear selected file
+        } else {
+          // Handle upload failure
+          setUploadMessage('File upload failed.');
+          console.error('File upload failed.');
+        }
+      } catch (error) {
+        setUploadMessage('An error occurred during upload.');
+        console.error('Error uploading file:', error);
+      }
+    } else {
+      // Handle missing file or folder
+      setUploadMessage('Please select a file and folder before uploading.');
+      console.error('Please select a file and folder before uploading.');
+    }
   };
 
   return (
     <div className="folder-tree">
       <h2>Folder Tree</h2>
+      <input
+        type="file"
+        accept=".pdf"
+        onChange={handleFileSelection}
+      />
+      <select onChange={handleFolderSelection}>
+        <option value="">Select a folder</option>
+        {folderTree.map((folderData, index) => (
+          <option key={index} value={folderData.folder}>
+            {folderData.folder}
+          </option>
+        ))}
+      </select>
+      <button onClick={handleFileUpload}>Upload PDF</button>
+      {uploadMessage && <div className={uploadMessage.includes('success') ? 'success-message' : 'error-message'}>{uploadMessage}</div>}
       <ul>
         {folderTree.map((folderData, index) => (
           <li key={index}>
@@ -66,11 +119,11 @@ const FolderTree: React.FC<TextDisplayProps> = ({ setSelectedFolder, setSelected
                   key={fileIndex}
                   className={
                     selectedFolder === folderData.folder &&
-                    selectedFileName === file
+                    selectedFile === file
                       ? 'selected'
                       : ''
                   }
-                  onClick={() => handleFileClick(folderData.folder, file)}
+                  onClick={() => setSelectedFile(folderData.folder, file)}
                 >
                   {file}
                 </li>
@@ -87,6 +140,7 @@ const FolderTree: React.FC<TextDisplayProps> = ({ setSelectedFolder, setSelected
 const TextDisplay: React.FC<TextDisplayProps> = ({ selectedFolder, selectedFile }) => {
   const [text, setText] = useState<string>(''); // State to store the displayed text
   const [selectedLength, setSelectedLength] = useState<'Full Text' | 'Half Text' | 'Small Text' | 'Bullets'>('Full Text');
+  const [pdfFilePath, setPdfFilePath] = useState<string | null>(null); // State to store PDF file path
 
   useEffect(() => {
     // Fetch the selected file's text based on selectedFile and selectedLength
@@ -115,6 +169,12 @@ const TextDisplay: React.FC<TextDisplayProps> = ({ selectedFolder, selectedFile 
     setSelectedLength(event.target.value as 'Full Text' | 'Half Text' | 'Small Text' | 'Bullets');
   };
 
+  const handleFullSizeOpen = () => {
+    // Set the PDF file path when "Full Text" is selected
+    setPdfFilePath(`${text}`);
+    console.log("Full Text")
+  };
+
   return (
     <div className="text-display">
       <h2>Text Display</h2>
@@ -124,7 +184,10 @@ const TextDisplay: React.FC<TextDisplayProps> = ({ selectedFolder, selectedFile 
             type="radio"
             value="Full Text"
             checked={selectedLength === 'Full Text'}
-            onChange={handleLengthChange}
+            onChange={(event) => {
+              handleLengthChange(event);
+              handleFullSizeOpen();
+            }}
           />
           Full Text
         </label>
@@ -157,7 +220,13 @@ const TextDisplay: React.FC<TextDisplayProps> = ({ selectedFolder, selectedFile 
         </label>
       </div>
       <div className="text-content">
-        <pre>{text}</pre>
+        {pdfFilePath ? (
+          <object data={pdfFilePath} type="application/pdf" width="100%" height="500px">
+            <p>Unable to display PDF file. <a href={pdfFilePath}>Download</a> instead.</p>
+          </object>
+        ) : (
+          <pre>{text}</pre>
+        )}
       </div>
     </div>
   );
@@ -231,6 +300,8 @@ const App: React.FC = () => {
 
   const handleFileSelect = (folder: string | null, file: string | null) => {
     // Update the selected folder and file in the app state
+    console.log("handleFileSelect " + folder)
+    console.log("handleFileSelect " + file)
     setAppState((prevState) => ({
       ...prevState,
       selectedFolder: folder,
@@ -240,6 +311,7 @@ const App: React.FC = () => {
 
   const handleLengthChange = (selectedLength: 'Full Text' | 'Half Text' | 'Small Text' | 'Bullets') => {
     // Update the selected length in the app state
+    console.log("handleLengthChange " + selectedLength)
     setAppState((prevState) => ({
       ...prevState,
       selectedLength,
@@ -279,10 +351,10 @@ const App: React.FC = () => {
       >
         <div className="left-box">
           <FolderTree
+            folderTree={appState.folderTree}
             selectedFolder={appState.selectedFolder}
-            setSelectedFolder={(folder: string | null) => handleFileSelect(folder, null)}
             selectedFile={appState.selectedFile}
-            setSelectedFile={(file) => handleFileSelect(appState.selectedFolder, file)}
+            setSelectedFile={handleFileSelect}
           />
         </div>
       </ResizableBox>
@@ -295,8 +367,8 @@ const App: React.FC = () => {
         >
           <div className="top-right-box">
             <TextDisplay
+              folderTree={appState.folderTree}
               selectedFolder={appState.selectedFolder}
-              setSelectedFolder={(folder: string | null) => handleFileSelect(folder, null)}
               selectedFile={appState.selectedFile}
               setSelectedFile={(file) => handleFileSelect(appState.selectedFolder, file)}
             />
